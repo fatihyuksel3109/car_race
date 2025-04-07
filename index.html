@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Car Racing Game</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body { 
+            margin: 0; 
+            overflow-x: hidden; 
+            text-align: center; 
+            font-family: Arial, sans-serif;
+            background-color: #1a2035;
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas { 
+            background: #2d2d2d; 
+            display: none; 
+            margin: 0 auto; 
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 600px;
+            position: relative; /* Ensure canvas position is accounted for */
+        }
+        h1 {
+            text-transform: uppercase;
+            letter-spacing: 0.3rem;
+            margin-top: 1rem;
+            font-size: 2rem;
+        }
+        h2 {
+            text-transform: uppercase;
+            letter-spacing: 0.2rem;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        .controls { 
+            position: fixed; 
+            bottom: 1rem; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            display: flex; 
+            gap: 1rem; 
+        }
+        .btn { 
+            width: 4rem; 
+            height: 4rem; 
+            background: rgba(255,255,255,0.2); 
+            border: none; 
+            border-radius: 0.5rem; 
+            font-size: 1.5rem; 
+            color: white;
+            cursor: pointer;
+            touch-action: manipulation; /* Improve touch support */
+        }
+        .btn:active {
+            background: rgba(255,255,255,0.4);
+        }
+        #carSelectionScreen {
+            max-width: 90%;
+            margin: 0 auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            height: 100vh;
+            overflow-y: auto; /* Allow scrolling if content overflows */
+        }
+        /* Car Preview Area */
+        .car-preview {
+            margin: 1rem 0;
+            height: 25vh;
+            max-height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 0.5rem;
+            border: 2px solid #00c6ff;
+        }
+        .car-preview img {
+            max-height: 90%;
+            max-width: 90%;
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        .car-preview img.visible {
+            opacity: 1;
+        }
+        .car-selection { 
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center; 
+            gap: 1rem; 
+            margin: 1rem 0; 
+        }
+        .car-item {
+            position: relative;
+            width: 30%;
+            max-width: 140px;
+            aspect-ratio: 7 / 10; /* Maintain aspect ratio */
+            background: linear-gradient(to bottom, #2a3a5a, #152040);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .car-item.selected {
+            border: 2px solid #00c6ff;
+            box-shadow: 0 0 1rem rgba(0, 198, 255, 0.7);
+        }
+        .car-item img {
+            width: 80%;
+            height: auto;
+            margin-top: 1rem;
+            transition: transform 0.3s ease;
+        }
+        .car-item:hover img {
+            transform: scale(1.1);
+        }
+        .car-name {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0,0,0,0.7);
+            padding: 0.5rem 0;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .car-lock {
+            position: absolute;
+            top: 0.3rem;
+            right: 0.3rem;
+            font-size: 1rem;
+            color: #ffcc00;
+        }
+        #playButton {
+            padding: 1rem 2.5rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            border-radius: 1.5rem;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.1rem;
+            box-shadow: 0 0.3rem 0.6rem rgba(46, 204, 113, 0.5);
+            transition: all 0.3s ease;
+            margin: 1rem auto;
+            display: block;
+            touch-action: manipulation; /* Improve touch support */
+        }
+        #playButton:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0.4rem 0.8rem rgba(46, 204, 113, 0.6);
+        }
+        .upgrade-panel {
+            background: rgba(0,0,0,0.4);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem auto;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .upgrade-item {
+            display: flex;
+            align-items: center;
+        }
+        .upgrade-icon {
+            width: 2rem;
+            margin-right: 0.5rem;
+        }
+        .upgrade-bar {
+            flex-grow: 1;
+             background: rgba(255,255,255,0.1);
+            height: 0.6rem;
+            border-radius: 0.3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .upgrade-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            background: #00c6ff;
+            border-radius: 0.3rem;
+        }
+        .upgrade-label {
+            margin-left: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+        .game-info {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            text-align: left;
+            font-size: 1rem;
+            background: rgba(0,0,0,0.5);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            display: none;
+        }
+        .game-over-modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(to bottom, #2a3a5a, #152040);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 0 1rem rgba(0,0,0,0.8);
+            z-index: 100;
+            width: 80%;
+            max-width: 500px;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ff5252;
+            text-transform: uppercase;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 1rem 0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00c6ff;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .modal-btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 1.5rem;
+            border: none;
+            font-size: 1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            touch-action: manipulation; /* Improve touch support */
+        }
+        .retry-btn {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            color: white;
+        }
+        .menu-btn {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+        }
+        .modal-btn:hover {
+            transform: scale(1.05);
+        }
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 90;
+        }
+        .crash-effect {
+            position: absolute;
+            width: 5rem;
+            height: 5rem;
+            background-size: contain;
+            background-repeat: no-repeat;
+            transform: translate(-50%, -50%);
+            animation: explosion 0.5s forwards;
+            z-index: 10;
+            opacity: 0;
+        }
+        @keyframes explosion {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+        }
+
+        /* Media Queries for Mobile */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+                letter-spacing: 0.2rem;
+            }
+            h2 {
+                font-size: 1.2rem;
+                letter-spacing: 0.1rem;
+            }
+            #carSelectionScreen {
+                max-width: 100%;
+                padding: 0.5rem;
+            }
+            .car-preview {
+                height: 20vh;
+                max-height: 150px;
+            }
+            .car-item {
+                width: 45%;
+                max-width: 120px;
+            }
+            .car-item img {
+                width: 75%;
+                margin-top: 0.5rem;
+            }
+            .car-name {
+                font-size: 0.65rem;
+                padding: 0.3rem 0;
+            }
+            .car-lock {
+                font-size: 0.8rem;
+            }
+            #playButton {
+                padding: 0.8rem 2rem;
+                font-size: 1.2rem;
+                margin: 0.5rem auto;
+            }
+            .upgrade-panel {
+                padding: 0.5rem;
+                max-width: 90%;
+            }
+            .upgrade-item {
+                font-size: 0.8rem;
+            }
+            .upgrade-icon {
+                width: 1.5rem;
+                margin-right: 0.3rem;
+            }
+            .upgrade-bar {
+                height: 0.5rem;
+            }
+            .upgrade-label {
+                font-size: 0.7rem;
+                margin-left: 0.3rem;
+            }
+            .btn {
+                width: 3rem;
+                height: 3rem;
+                font-size: 1.2rem;
+            }
+            .game-info {
+                font-size: 0.8rem;
+                padding: 0.3rem;
+            }
+            .game-over-modal {
+                padding: 1rem;
+                width: 90%;
+                max-width: 400px;
+            }
+            .modal-title {
+                font-size: 1.2rem;
+            }
+            .stat-value {
+                font-size: 1.2rem;
+            }
+            .stat-label {
+                font-size: 0.7rem;
+            }
+            .modal-btn {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+            .crash-effect {
+                width: 4rem;
+                height: 4rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+            h2 {
+                font-size: 1rem;
+            }
+            .car-preview {
+                height: 15vh;
+                max-height: 120px;
+            }
+            .car-item {
+                width: 45%;
+                max-width: 100px;
+            }
+            .car-item img {
+                width: 70%;
+            }
+            .car-name {
+                font-size: 0.6rem;
+            }
+            #playButton {
+                padding: 0.6rem 1.5rem;
+                font-size: 1rem;
+            }
+            .upgrade-panel {
+                max-width: 100%;
+            }
+            .btn {
+                width: 2.5rem;
+                height: 2.5rem;
+                font-size: 1rem;
+            }
+            .game-over-modal {
+                width: 95%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Car Racing Game</h1>
+    <div id="carSelectionScreen">
+        <h2>SELECT YOUR CAR</h2>
+        <div class="car-preview">
+            <img id="carPreviewImage" src="" alt="Car Preview">
+        </div>
+        <div class="car-selection" id="carGallery"></div>
+        
+        <div class="upgrade-panel">
+            <div class="upgrade-item">
+                <div class="upgrade-icon">🏎️</div>
+                <div class="upgrade-bar">
+                    <div class="upgrade-fill" style="width: 70%"></div>
+                </div>
+                <div class="upgrade-label">SPEED</div>
+            </div>
+            <div class="upgrade-item">
+                <div class="upgrade-icon">↩️</div>
+                <div class="upgrade-bar">
+                    <div class="upgrade-fill" style="width: 50%"></div>
+                </div>
+                <div class="upgrade-label">HANDLING</div>
+            </div>
+            <div class="upgrade-item">
+                <div class="upgrade-icon">⚡</div>
+                <div class="upgrade-bar">
+                    <div class="upgrade-fill" style="width: 60%"></div>
+                </div>
+                <div class="upgrade-label">ACCELERATION</div>
+            </div>
+        </div>
+        
+        <button id="playButton">PLAY</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="game-info">
+        <div>Time: <span id="timer">0</span> sec</div>
+        <div>Points: <span id="points">0</span></div>
+        <div>Speed: <span id="speed">1.0</span>x</div>
+    </div>
+    <div class="controls">
+        <button class="btn" id="left">⬅️</button>
+        <button class="btn" id="right">➡️</button>
+    </div>
+    
+    <div class="overlay" id="overlay"></div>
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="modal-title">Game Over!</div>
+        <p id="gameOverMessage">You crashed your car!</p>
+        <div class="stats-container">
+            <div class="stat-item">
+                <div class="stat-value" id="finalPoints">0</div>
+                <div class="stat-label">Points</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="finalTime">0</div>
+                <div class="stat-label">Seconds</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="finalSpeed">1.0x</div>
+                <div class="stat-label">Speed</div>
+            </div>
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-btn retry-btn" id="retryButton">Play Again</button>
+            <button class="modal-btn menu-btn" id="menuButton">Main Menu</button>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = 400;
+        canvas.height = 600;
+        
+        let carImage = new Image();
+        let selectedCarFile = 'porsche-911.png';
+        
+        let car = { x: 175, y: 500, width: 50, height: 100, speed: 5 };
+        // Three lanes, four lane markings (left edge, between lanes, right edge)
+        let roadLines = [
+            { x: 100, y: 0 },  // Leftmost lane marking
+            { x: 200, y: 0 },  // Middle lane marking 1
+            { x: 300, y: 0 },  // Middle lane marking 2
+            { x: 400, y: 0 },  // Rightmost lane marking
+            { x: 100, y: 50 }, // Second set of lane markings
+            { x: 200, y: 50 },
+            { x: 300, y: 50 },
+            { x: 400, y: 50 }
+        ];
+        let obstacles = [];
+        let keys = {};
+        let time = 0;
+        let points = 0;
+        let gameSpeed = 1.0;
+        let gameStarted = false;
+        let pointsInterval;
+        let speedIncreaseInterval;
+        let lastCollisionCheckTime = 0; // Track the last time a collision check was made
+        const maxTimeWithoutCollision = 30; // Max seconds without a collision before game over
+
+        // Array of obstacle images
+        const obstacleImages = [
+            new Image(),
+            new Image(),
+            new Image()
+        ];
+        obstacleImages[0].src = 'images/tractor.png';
+        obstacleImages[1].src = 'images/school-bus.png';
+        obstacleImages[2].src = 'images/pickup.png';
+
+        const carImages = [
+            {name: 'Ferrari Aperta', file: 'ferrari-aperta.png', locked: false},
+            {name: 'McLaren 650S', file: 'mclaren-artura.png', locked: false},
+            {name: 'BMW Z4', file: 'bmw-z4.png', locked: false},
+            {name: 'Ferrari 488', file: 'ferrari-488.png', locked: false},
+            {name: 'Chevrolet Coupe', file: 'chevrolet-corvette.png', locked: false},
+            {name: 'Lamborghini', file: 'lamborghini-revuelto.png', locked: true}
+        ];
+        
+        const carGallery = document.getElementById('carGallery');
+        const carPreviewImage = document.getElementById('carPreviewImage');
+        
+        carImages.forEach((car, index) => {
+            let carItem = document.createElement('div');
+            carItem.className = 'car-item';
+            if (index === 0) carItem.classList.add('selected');
+            
+            let img = document.createElement('img');
+            img.src = `images/car_select/${car.file}`;
+            img.dataset.carFile = car.file;
+            
+            let carName = document.createElement('div');
+            carName.className = 'car-name';
+            carName.textContent = car.name;
+            
+            carItem.appendChild(img);
+            carItem.appendChild(carName);
+            
+            if (car.locked) {
+                carItem.style.filter = 'grayscale(0.8)';
+                let lockIcon = document.createElement('div');
+                lockIcon.className = 'car-lock';
+                lockIcon.innerHTML = '🔒';
+                carItem.appendChild(lockIcon);
+            } else {
+                carItem.addEventListener('click', () => selectCar(carItem, car.file));
+            }
+            
+            carGallery.appendChild(carItem);
+        });
+        
+        function selectCar(item, carFile) {
+            document.querySelectorAll('.car-item').forEach(el => el.classList.remove('selected'));
+            item.classList.add('selected');
+            selectedCarFile = carFile;
+            
+            // Update preview image on click
+            carPreviewImage.src = `images/car_select/${carFile}`;
+            carPreviewImage.classList.add('visible');
+            
+            // Update stats based on car selection
+            const statBars = document.querySelectorAll('.upgrade-fill');
+            statBars[0].style.width = `${Math.random() * 50 + 50}%`; // Speed
+            statBars[1].style.width = `${Math.random() * 60 + 40}%`; // Handling
+            statBars[2].style.width = `${Math.random() * 70 + 30}%`; // Acceleration
+        }
+        
+        document.getElementById('playButton').addEventListener('click', () => {
+            document.getElementById('carSelectionScreen').style.display = 'none';
+            canvas.style.display = 'block';
+            document.querySelector('.game-info').style.display = 'block';
+            
+            carImage.src = `images/${selectedCarFile}`;
+            startGame();
+        });
+        
+        function startGame() {
+            resetGame();
+            gameStarted = true;
+            lastCollisionCheckTime = time; // Reset the last collision check time
+            startTimer();
+            startPointsCounter();
+            startSpeedIncrease();
+            loop();
+        }
+        
+        function resetGame() {
+            time = 0;
+            points = 0;
+            gameSpeed = 1.0;
+            car = { x: 175, y: 500, width: 50, height: 100, speed: 5 };
+            roadLines = [
+                { x: 100, y: 0 },
+                { x: 200, y: 0 },
+                { x: 300, y: 0 },
+                { x: 400, y: 0 },
+                { x: 100, y: 50 },
+                { x: 200, y: 50 },
+                { x: 300, y: 50 },
+                { x: 400, y: 50 }
+            ];
+            obstacles = [];
+            
+            document.getElementById('timer').innerText = time;
+            document.getElementById('points').innerText = points;
+            document.getElementById('speed').innerText = gameSpeed.toFixed(1);
+            
+            clearInterval(pointsInterval);
+            clearInterval(speedIncreaseInterval);
+            
+            // Ensure UI elements are in the correct state
+            document.getElementById('carSelectionScreen').style.display = 'none';
+            canvas.style.display = 'block';
+            document.querySelector('.game-info').style.display = 'block';
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('gameOverModal').style.display = 'none';
+        }
+        
+        document.addEventListener('keydown', (e) => keys[e.key] = true);
+        document.addEventListener('keyup', (e) => keys[e.key] = false);
+        document.getElementById('left').addEventListener('click', () => moveCar(-1));
+        document.getElementById('right').addEventListener('click', () => moveCar(1));
+        
+        document.getElementById('retryButton').addEventListener('click', () => {
+            hideGameOverModal();
+            startGame();
+        });
+        
+        document.getElementById('menuButton').addEventListener('click', () => {
+            hideGameOverModal();
+            document.getElementById('carSelectionScreen').style.display = 'block';
+            canvas.style.display = 'none';
+            document.querySelector('.game-info').style.display = 'none';
+            gameStarted = false;
+        });
+        
+        function moveCar(direction) {
+            if (gameStarted) car.x += direction * car.speed * 5;
+        }
+        
+        function update() {
+            if (!gameStarted) return;
+            
+            if (keys['ArrowLeft'] && car.x > 0) car.x -= car.speed * gameSpeed;
+            if (keys['ArrowRight'] && car.x + car.width < canvas.width) car.x += car.speed * gameSpeed;
+            
+            const baseSpeed = 5 * gameSpeed;
+            
+            // Update road lines
+            roadLines.forEach(line => line.y += baseSpeed);
+            // Remove lines that go off-screen and add new ones
+            if (roadLines[0].y > canvas.height) {
+                roadLines.splice(0, 4); // Remove the first set of 4 lines
+                roadLines.push(
+                    { x: 100, y: -50 },
+                    { x: 200, y: -50 },
+                    { x: 300, y: -50 },
+                    { x: 400, y: -50 }
+                );
+            }
+            
+            obstacles.forEach(obstacle => obstacle.y += baseSpeed);
+            
+            obstacles = obstacles.filter(obstacle => obstacle.y < canvas.height);
+            
+            // Add new obstacles more frequently (every 100px)
+            if (obstacles.length === 0 || obstacles[obstacles.length - 1].y > 100) {
+                const lanePositions = [50, 150, 250, 350]; // Center of each lane
+                const randomLane = lanePositions[Math.floor(Math.random() * lanePositions.length)];
+                const randomImage = obstacleImages[Math.floor(Math.random() * obstacleImages.length)];
+                obstacles.push({ 
+                    x: randomLane - 28.75, // Center the obstacle in the lane (57.5 / 2)
+                    y: -50, 
+                    width: 57.5, // Increased by 15%
+                    height: 57.5, // Increased by 15%
+                    image: randomImage
+                });
+            }
+            
+            // Check for collisions
+            let collisionDetected = false;
+            obstacles.forEach(obstacle => {
+                if (
+                    car.x < obstacle.x + obstacle.width &&
+                    car.x + car.width > obstacle.x &&
+                    car.y < obstacle.y + obstacle.height &&
+                    car.y + car.height > obstacle.y
+                ) {
+                    collisionDetected = true;
+                    gameOver(obstacle);
+                }
+            });
+
+            // If no collision is detected, check if too much time has passed
+            if (!collisionDetected) {
+                if (time - lastCollisionCheckTime >= maxTimeWithoutCollision) {
+                    gameStarted = false;
+                    clearInterval(pointsInterval);
+                    clearInterval(speedIncreaseInterval);
+                    document.getElementById('gameOverMessage').innerText = "You took too long to collide!";
+                    showGameOverModal();
+                }
+            } else {
+                lastCollisionCheckTime = time; // Reset the timer on collision
+            }
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw road lines
+            ctx.fillStyle = 'white';
+            roadLines.forEach(line => {
+                ctx.fillRect(line.x, line.y, 10, 50);
+            });
+            
+            // Draw obstacles as images
+            obstacles.forEach(obstacle => {
+                ctx.drawImage(obstacle.image, obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+            
+            ctx.drawImage(carImage, car.x, car.y, car.width, car.height);
+        }
+        
+        function gameOver(obstacle) {
+            gameStarted = false;
+            clearInterval(pointsInterval);
+            clearInterval(speedIncreaseInterval);
+            
+            // Calculate the position of the crash effect relative to the canvas
+            const canvasRect = canvas.getBoundingClientRect();
+            const crashX = canvasRect.left + obstacle.x + obstacle.width / 2;
+            const crashY = canvasRect.top + obstacle.y + obstacle.height / 2;
+            
+            const crash = document.createElement('div');
+            crash.className = 'crash-effect';
+            crash.style.backgroundImage = "url('images/collision.webp')";
+            crash.style.left = crashX + 'px';
+            crash.style.top = crashY + 'px';
+            document.body.appendChild(crash);
+            
+            setTimeout(() => {
+                if (crash.parentNode) {
+                    crash.parentNode.removeChild(crash);
+                }
+                showGameOverModal();
+            }, 500);
+        }
+        
+        function showGameOverModal() {
+            document.getElementById('finalPoints').innerText = points;
+            document.getElementById('finalTime').innerText = time;
+            document.getElementById('finalSpeed').innerText = gameSpeed.toFixed(1) + 'x';
+            
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('gameOverModal').style.display = 'block';
+        }
+        
+        function hideGameOverModal() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('gameOverModal').style.display = 'none';
+        }
+        
+        function loop() {
+            if (gameStarted) {
+                update();
+                draw();
+                requestAnimationFrame(loop);
+            }
+        }
+        
+        function startTimer() {
+            const timerElement = document.getElementById('timer');
+            const timerInterval = setInterval(() => {
+                if (gameStarted) {
+                    time++;
+                    timerElement.innerText = time;
+                } else {
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+        
+        function startPointsCounter() {
+            const pointsElement = document.getElementById('points');
+            pointsInterval = setInterval(() => {
+                if (gameStarted) {
+                    points += Math.floor(gameSpeed * 10);
+                    pointsElement.innerText = points;
+                }
+            }, 500);
+        }
+        
+        function startSpeedIncrease() {
+            const speedElement = document.getElementById('speed');
+            speedIncreaseInterval = setInterval(() => {
+                if (gameStarted) {
+                    gameSpeed += 0.1;
+                    gameSpeed = Math.min(gameSpeed, 3.0);
+                    speedElement.innerText = gameSpeed.toFixed(1);
+                    
+                    car.speed = 5 * (1 + (gameSpeed - 1) * 0.5);
+                }
+            }, 10000);
+        }
+
+        // Initially select the first car to update stats and preview
+        const firstCar = document.querySelector('.car-item');
+        if (firstCar && !firstCar.querySelector('.car-lock')) {
+            selectCar(firstCar, carImages[0].file);
+        }
+    </script>
+</body>
+</html>
